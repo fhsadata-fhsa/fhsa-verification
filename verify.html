@@ -16,7 +16,7 @@ const urlParams = new URLSearchParams(window.location.search);
 const id = urlParams.get('id');
 
 // 🔴 RANPLASE AK LINK CSV OU
-const sheetURL = "METE_LINK_OU_ISIT";
+const sheetURL = "https://docs.google.com/spreadsheets/d/ID_GOOGLE_SHEET_LA/export?format=csv&gid=0";
 
 fetch(sheetURL)
   .then(res => res.text())
