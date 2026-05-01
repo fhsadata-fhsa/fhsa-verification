@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>FHSA Vérification</title>
+</head>
+
+<body style="font-family: Arial; text-align:center; padding:40px;">
+
+<h1>VÉRIFICATION D’AFFILIATION</h1>
+
+<div id="result">Chargement...</div>
+
+<script>
+const urlParams = new URLSearchParams(window.location.search);
+const id = urlParams.get('id');
+
+// 🔴 RANPLASE AK LINK CSV OU
+const sheetURL = "METE_LINK_OU_ISIT";
+
+fetch(sheetURL)
+  .then(res => res.text())
+  .then(data => {
+    const rows = data.split("\n");
+
+    let found = false;
+
+    rows.forEach(row => {
+      const cols = row.split(",");
+
+      const club = cols[1];
+      const sig = cols[2];
+      const annee = cols[3];
+      const statut = cols[4];
+
+      if((sig + "-" + annee) === id){
+        found = true;
+
+        let color = "green";
+        if(statut !== "ACTIF") color = "red";
+
+        document.getElementById("result").innerHTML = `
+          <h2>${club}</h2>
+          <p>Année: ${annee}</p>
+          <h2 style="color:${color}">${statut}</h2>
+        `;
+      }
+    });
+
+    if(!found){
+      document.getElementById("result").innerHTML =
+        "<h2 style='color:red'>Club non trouvé</h2>";
+    }
+  });
+</script>
+
+</body>
+</html>
