@@ -26,14 +26,14 @@ fetch(sheetURL)
     let found = false;
 
     rows.forEach(row => {
-     const cols = row.split(",");
+ const cols = row.split(",").map(c => c.trim());
 
       const club = cols[1];
       const sig = cols[2];
       const annee = cols[3];
       const statut = cols[4];
 
-      if((sig + "-" + annee) === id){
+    if((sig.trim() + "-" + annee.trim()) === id.trim()){
         found = true;
 
         let color = "green";
