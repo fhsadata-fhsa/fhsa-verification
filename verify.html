@@ -99,10 +99,15 @@ fetch(sheetURL)
       const club = cols[1];
       const sig = cols[2];
       const annee = cols[3];
+
+      // 🔐 NOU PA PRAL AFFICHE SA YO
       const paiement = cols[4];
       const montant = cols[5];
+      const datePaiement = cols[6];
+
       const statut = cols[7];
       const statutAffiche = cols[8];
+
       const dateEmission = cols[9];
       const dateExpiration = cols[10];
       const federation = cols[11];
@@ -140,9 +145,6 @@ fetch(sheetURL)
           <p><strong>Référence :</strong> ${ref}</p>
           <p><strong>Sigle :</strong> ${sig}</p>
           <p><strong>Année :</strong> ${annee}</p>
-          <p><strong>Paiement :</strong> ${paiement}</p>
-          <p><strong>Montant :</strong> ${montant} USD</p>
-          <p><strong>Date paiement :</strong> ${datePaiement}</p>
           <p><strong>Date d’émission :</strong> ${dateEmission}</p>
           <p><strong>Date d’expiration :</strong> ${dateExpiration}</p>
           <p><strong>Fédération :</strong> ${federation}</p>
