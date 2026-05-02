@@ -99,38 +99,59 @@ fetch(sheetURL)
       const club = cols[1];
       const sig = cols[2];
       const annee = cols[3];
-      const statut = cols[4];
-      const emission = cols[5];
-      const expiration = cols[6];
-      const federation = cols[7];
+      const paiement = cols[4];
+      const montant = cols[5];
+      const datePaiement = cols[6];
+      const statut = cols[7];
+      const statutAffiche = cols[8];
+      const dateEmission = cols[9];
+      const dateExpiration = cols[10];
+      const federation = cols[11];
 
-      const rowId = (sig + "-" + annee).trim().toUpperCase();
+      const rowId = `${sig}-${annee}`.trim().toUpperCase();
 
-      if(rowId === id){
+      if (rowId === id) {
         found = true;
 
-        let statusClass = "inactive";
-        if(statut.toUpperCase() === "ACTIF") statusClass = "active";
-        if(statut.toUpperCase() === "SUSPENDU") statusClass = "suspended";
-        if(statut.toUpperCase() === "EXPIRÉ") statusClass = "expired";
+        const statusText = (statutAffiche || statut).toUpperCase();
+
+        let color = "#c00000";
+        let message = "Cette affiliation n’est pas active.";
+
+        if (statusText === "ACTIF") {
+          color = "#008000";
+          message = "Cette affiliation est valide et active.";
+        }
+
+        if (statusText === "SUSPENDU") {
+          color = "#d97706";
+          message = "Cette affiliation est suspendue. Veuillez contacter la fédération.";
+        }
+
+        if (statusText === "EXPIRÉ") {
+          color = "#c00000";
+          message = "Désolé, cette affiliation est expirée. Veuillez régulariser le paiement afin d’être réactivé.";
+        }
 
         document.getElementById("result").innerHTML = `
           <h2>${club}</h2>
-          <div class="status ${statusClass}">${statut}</div>
+          <h3 style="color:${color}; font-size:32px;">${statusText}</h3>
+          <p>${message}</p>
 
-          <div class="info">
-            <strong>Référence certificat :</strong> ${ref}<br>
-            <strong>Sigle :</strong> ${sig}<br>
-            <strong>Année :</strong> ${annee}<br>
-            <strong>Date d’émission :</strong> ${emission}<br>
-            <strong>Date d’expiration :</strong> ${expiration}<br>
-            <strong>Fédération :</strong> ${federation}
-          </div>
+          <p><strong>Référence :</strong> ${ref}</p>
+          <p><strong>Sigle :</strong> ${sig}</p>
+          <p><strong>Année :</strong> ${annee}</p>
+          <p><strong>Paiement :</strong> ${paiement}</p>
+          <p><strong>Montant :</strong> ${montant} USD</p>
+          <p><strong>Date paiement :</strong> ${datePaiement}</p>
+          <p><strong>Date d’émission :</strong> ${dateEmission}</p>
+          <p><strong>Date d’expiration :</strong> ${dateExpiration}</p>
+          <p><strong>Fédération :</strong> ${federation}</p>
         `;
       }
     });
 
-    if(!found){
+    if (!found) {
       document.getElementById("result").innerHTML =
         "<h2 style='color:red'>Certificat non trouvé</h2>";
     }
