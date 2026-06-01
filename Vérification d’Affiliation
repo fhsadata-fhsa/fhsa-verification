@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Vérification d’Affiliation FHSA / FHSaA</title>
+
+<style>
+body{margin:0;font-family:Arial,sans-serif;background:#f4f7fb;color:#0b1f3a;}
+.card{max-width:720px;margin:50px auto;background:white;padding:35px;border-radius:18px;box-shadow:0 10px 30px rgba(0,0,0,.12);text-align:center;border-top:8px solid #0b3d91;}
+h1{color:#0b3d91;font-size:28px;margin-bottom:5px;}
+.subtitle{color:#b8860b;font-weight:bold;margin-bottom:25px;}
+.badge{display:inline-block;padding:8px 16px;border-radius:30px;background:#eef3ff;color:#0b3d91;font-weight:bold;}
+.status{font-size:34px;font-weight:bold;margin:20px 0 10px;}
+.info{text-align:left;margin-top:25px;line-height:1.8;font-size:16px;background:#f8fafc;padding:18px;border-radius:12px;}
+.notice{margin:15px 0;padding:14px;border-radius:12px;background:#fff7e6;color:#7a4b00;font-weight:bold;}
+.footer{margin-top:30px;font-size:13px;color:#555;border-top:1px solid #ddd;padding-top:15px;}
+</style>
+</head>
+
+<body>
+<div class="card">
+  <div class="badge">Vérification officielle</div>
+  <h1>Fédération Haïtienne de Sauvetage Aquatique</h1>
+  <div class="subtitle">Certificat d’Affiliation FHSA / FHSaA</div>
+
+  <div id="result">Chargement...</div>
+
+  <div class="footer">
+    Ce certificat est valide uniquement après vérification via ce lien officiel.
+  </div>
+</div>
+
+<script>
+const urlParams = new URLSearchParams(window.location.search);
+const id = (urlParams.get("id") || "").trim().toUpperCase();
+
+const sheetURL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vT5dIFEnBd0cnCuI2an3gCe6NSjWHOg6wxNVoK6aKXvQhunbvElcShsCMcqpio5SS0ljD3QLFReL3j/pub?gid=0&single=true&output=csv";
+
+function nextYearFrom(dateText){
+  const parts = dateText.split("/");
+  if(parts.length === 3){
+    return Number(parts[2]) + 1;
+  }
+  return "";
+}
+
+fetch(sheetURL)
+.then(res => res.text())
+.then(data => {
+  const rows = data.trim().split(/\r?\n/).slice(1);
+  let found = false;
+
+  rows.forEach(row => {
+    const cols = row.split(",").map(c => c.replaceAll('"', '').trim());
+
+    const ref = cols[0];
+    const club = cols[1];
+    const sig = cols[2];
+    const annee = cols[3];
+    const statut = cols[7];
+    const statutAffiche = cols[8];
+    const dateEmission = cols[9];
+    const dateExpiration = cols[10];
+    const federation = cols[11];
+
+    const rowId = `${sig}-${annee}`.trim().toUpperCase();
+
+    if(rowId === id){
+      found = true;
+
+      const statusText = (statutAffiche || statut || "").toUpperCase();
+      const nextYear = nextYearFrom(dateExpiration);
+
+      let color = "#c00000";
+      let message = "Cette affiliation n’est pas active.";
+      let notice = "";
+
+      if(statusText === "ACTIF"){
+        color = "#008000";
+        message = "Cette affiliation est valide et active.";
+        notice = `Année validée : ${annee} — Valable jusqu’au ${dateExpiration}.`;
+      }
+
+      if(statusText === "SUSPENDU"){
+        color = "#d97706";
+        message = "Cette affiliation est suspendue. Veuillez contacter la fédération.";
+        notice = `Année concernée : ${annee}. Statut temporairement non actif.`;
+      }
+
+      if(statusText === "EXPIRÉ"){
+        color = "#c00000";
+        message = "Cette affiliation a expiré.";
+        notice = `Renouvellement requis pour l’année ${nextYear}.`;
+      }
+
+      document.getElementById("result").innerHTML = `
+        <h2>${club}</h2>
+        <div class="status" style="color:${color};">${statusText}</div>
+        <p>${message}</p>
+        <div class="notice">${notice}</div>
+
+        <div class="info">
+          <strong>Référence :</strong> ${ref}<br>
+          <strong>Sigle :</strong> ${sig}<br>
+          <strong>Année d’affiliation :</strong> ${annee}<br>
+          <strong>Date d’émission :</strong> ${dateEmission}<br>
+          <strong>Date d’expiration :</strong> ${dateExpiration}<br>
+          <strong>Fédération :</strong> ${federation}
+        </div>
+      `;
+    }
+  });
+
+  if(!found){
+    document.getElementById("result").innerHTML =
+      "<h2 style='color:red'>Certificat non trouvé</h2>";
+  }
+})
+.catch(() => {
+  document.getElementById("result").innerHTML =
+    "<h2 style='color:red'>Erreur de connexion au système de vérification</h2>";
+});
+</script>
+</body>
+</html>
