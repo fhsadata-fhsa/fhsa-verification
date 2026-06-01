@@ -1,0 +1,196 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Vérification Badge FHSA / FHSaA</title>
+
+<style>
+body{margin:0;font-family:Arial,sans-serif;background:#f4f7fb;color:#0b1f3a;}
+.card{max-width:760px;margin:40px auto;background:white;padding:35px;border-radius:18px;box-shadow:0 10px 30px rgba(0,0,0,.12);text-align:center;border-top:8px solid #0b3d91;}
+h1{color:#0b3d91;font-size:28px;margin-bottom:5px;}
+.subtitle{color:#b8860b;font-weight:bold;margin-bottom:25px;}
+.badge-label{display:inline-block;padding:8px 16px;border-radius:30px;background:#eef3ff;color:#0b3d91;font-weight:bold;}
+.status{font-size:34px;font-weight:bold;margin:20px 0 10px;}
+.info{text-align:left;margin-top:25px;line-height:1.8;font-size:16px;background:#f8fafc;padding:18px;border-radius:12px;}
+.notice{margin:15px 0;padding:14px;border-radius:12px;background:#fff7e6;color:#7a4b00;font-weight:bold;}
+.signatures{margin-top:35px;border-top:1px solid #ddd;padding-top:20px;}
+.signature-box{display:flex;justify-content:space-around;gap:25px;flex-wrap:wrap;}
+.signature img{width:170px;max-height:80px;object-fit:contain;}
+.signature{min-width:240px;}
+.footer{margin-top:30px;font-size:13px;color:#555;border-top:1px solid #ddd;padding-top:15px;}
+</style>
+</head>
+
+<body>
+<div class="card">
+  <div class="badge-label">Vérification officielle</div>
+  <h1>Badge Officiel FHSA / FHSaA</h1>
+  <div class="subtitle">Authentification et validité du badge</div>
+
+  <div id="result">Chargement...</div>
+
+  <div class="footer">
+    Ce badge est valide uniquement après vérification via ce lien officiel.
+  </div>
+</div>
+
+<script>
+const params = new URLSearchParams(window.location.search);
+const id = (params.get("id") || "").trim().toUpperCase();
+
+const sheetURL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vSStiF7U_UwNLCb3Mw74b1xj0IrRkN5YtRYMZP44V3MIyC6iDF8YKiZklGzVDdWYu8rAnge3ae0kquH/pub?output=csv";
+
+function parseCSV(text){
+  const rows = [];
+  let row = [];
+  let value = "";
+  let inQuotes = false;
+
+  for(let i=0; i<text.length; i++){
+    const char = text[i];
+    const next = text[i+1];
+
+    if(char === '"' && inQuotes && next === '"'){
+      value += '"';
+      i++;
+    } else if(char === '"'){
+      inQuotes = !inQuotes;
+    } else if(char === "," && !inQuotes){
+      row.push(value.trim());
+      value = "";
+    } else if((char === "\n" || char === "\r") && !inQuotes){
+      if(value || row.length){
+        row.push(value.trim());
+        rows.push(row);
+        row = [];
+        value = "";
+      }
+      if(char === "\r" && next === "\n") i++;
+    } else {
+      value += char;
+    }
+  }
+
+  if(value || row.length){
+    row.push(value.trim());
+    rows.push(row);
+  }
+
+  return rows;
+}
+
+function nextYearFrom(dateText){
+  const parts = (dateText || "").split("/");
+  return parts.length === 3 ? Number(parts[2]) + 1 : "";
+}
+
+fetch(sheetURL)
+.then(res => res.text())
+.then(text => {
+  const rows = parseCSV(text).slice(1);
+  let found = false;
+
+  rows.forEach(cols => {
+    const idBadge = cols[0] || "";
+    const nom = cols[1] || "";
+    const fonction = cols[2] || "";
+    const discipline = cols[3] || "";
+    const categorie = cols[4] || "";
+    const statut = cols[5] || "";
+    const statutAffiche = cols[6] || "";
+    const dateEmission = cols[7] || "";
+    const dateExpiration = cols[8] || "";
+    const photo = cols[9] || "";
+    const niveau = cols[10] || "";
+    const motif = cols[11] || "";
+    const federation = cols[12] || "";
+
+    if(idBadge.trim().toUpperCase() === id){
+      found = true;
+
+      const statusText = (statutAffiche || statut || "").trim().toUpperCase();
+      const nextYear = nextYearFrom(dateExpiration);
+
+      let color = "#c00000";
+      let message = "Ce badge n’est pas actif.";
+      let notice = `Badge concerné : ${idBadge}.`;
+
+      if(statusText === "ACTIF"){
+        color = "#008000";
+        message = "Ce badge est valide et actif.";
+        notice = `Valable jusqu’au ${dateExpiration}.`;
+      }
+
+      if(statusText === "SUSPENDU"){
+        color = "#d97706";
+        message = "Ce badge est suspendu. Veuillez contacter la fédération.";
+        notice = "Statut temporairement non actif.";
+      }
+
+      if(statusText === "EXPIRÉ" || statusText === "EXPIRE"){
+        color = "#c00000";
+        message = "Ce badge a expiré.";
+        notice = `Renouvellement requis pour l’année ${nextYear}.`;
+      }
+
+      if(statusText === "RÉVOQUÉ" || statusText === "REVOQUE"){
+        color = "#8b0000";
+        message = "Ce badge a été révoqué.";
+        notice = "Ce badge n’est plus reconnu comme valide.";
+      }
+
+      const photoHtml = photo
+        ? `<div style="margin:20px 0;"><img src="${photo}" style="width:150px;height:150px;object-fit:cover;border-radius:12px;border:3px solid #0b3d91;"></div>`
+        : "";
+
+      document.getElementById("result").innerHTML = `
+        ${photoHtml}
+        <h2>${nom}</h2>
+        <div class="status" style="color:${color};">${statusText}</div>
+        <p>${message}</p>
+        <div class="notice">${notice}</div>
+
+        <div class="info">
+          <strong>ID Badge :</strong> ${idBadge}<br>
+          <strong>Fonction :</strong> ${fonction}<br>
+          <strong>Discipline :</strong> ${discipline}<br>
+          <strong>Catégorie :</strong> ${categorie}<br>
+          <strong>Niveau / Certification :</strong> ${niveau}<br>
+          <strong>Date d’émission :</strong> ${dateEmission}<br>
+          <strong>Date d’expiration :</strong> ${dateExpiration}<br>
+          <strong>Fédération :</strong> ${federation}
+        </div>
+
+        <div class="signatures">
+          <h3>Validation officielle</h3>
+          <div class="signature-box">
+            <div class="signature">
+              <img src="baniel-signature.png" alt="Signature Baniel Dorival">
+              <br><strong>Baniel Dorival</strong><br>
+              Président FHSA
+            </div>
+
+            <div class="signature">
+              <img src="evenel-signature.png" alt="Signature Evenel Mervilus">
+              <br><strong>Evenel Mervilus</strong><br>
+              Président FHSaA
+            </div>
+          </div>
+        </div>
+      `;
+    }
+  });
+
+  if(!found){
+    document.getElementById("result").innerHTML =
+      "<h2 style='color:red'>Badge non trouvé</h2>";
+  }
+})
+.catch(() => {
+  document.getElementById("result").innerHTML =
+    "<h2 style='color:red'>Erreur de connexion au système de vérification</h2>";
+});
+</script>
+</body>
+</html>
