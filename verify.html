@@ -32,49 +32,83 @@ h1{color:#0b3d91;font-size:28px;margin-bottom:5px;}
 </div>
 
 <script>
-const urlParams = new URLSearchParams(window.location.search);
-const id = (urlParams.get("id") || "").trim().toUpperCase();
-  
+const params = new URLSearchParams(window.location.search);
+const id = (params.get("id") || "").trim().toUpperCase();
+
 const sheetURL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vT5dIFEnBdOcnCuI2an3gCe6NSjWHOg6wxNVok6aKXvQhunbvElcShsCMcqpio5SSoIjlD3QLFReLj3/pub?output=csv";
 
-function nextYearFrom(dateText){
-  const parts = dateText.split("/");
-  if(parts.length === 3){
-    return Number(parts[2]) + 1;
+function parseCSV(text){
+  const rows = [];
+  let row = [];
+  let value = "";
+  let inQuotes = false;
+
+  for(let i=0; i<text.length; i++){
+    const char = text[i];
+    const next = text[i+1];
+
+    if(char === '"' && inQuotes && next === '"'){
+      value += '"';
+      i++;
+    } else if(char === '"'){
+      inQuotes = !inQuotes;
+    } else if(char === "," && !inQuotes){
+      row.push(value.trim());
+      value = "";
+    } else if((char === "\n" || char === "\r") && !inQuotes){
+      if(value || row.length){
+        row.push(value.trim());
+        rows.push(row);
+        row = [];
+        value = "";
+      }
+      if(char === "\r" && next === "\n") i++;
+    } else {
+      value += char;
+    }
   }
-  return "";
+
+  if(value || row.length){
+    row.push(value.trim());
+    rows.push(row);
+  }
+
+  return rows;
+}
+
+function nextYearFrom(dateText){
+  const parts = (dateText || "").split("/");
+  return parts.length === 3 ? Number(parts[2]) + 1 : "";
 }
 
 fetch(sheetURL)
 .then(res => res.text())
-.then(data => {
-  const rows = data.trim().split(/\r?\n/).slice(1);
+.then(text => {
+  const rows = parseCSV(text).slice(1);
   let found = false;
 
-  rows.forEach(row => {
-    const cols = row.split(",").map(c => c.replaceAll('"', '').trim());
-
-    const ref = cols[0];
-    const club = cols[1];
-    const sig = cols[2];
-    const annee = cols[3];
-    const statut = cols[7];
-    const statutAffiche = cols[8];
-    const dateEmission = cols[9];
-    const dateExpiration = cols[10];
-    const federation = cols[11];
+  rows.forEach(cols => {
+    const ref = cols[0] || "";
+    const club = cols[1] || "";
+    const sig = cols[2] || "";
+    const annee = cols[3] || "";
+    const statut = cols[7] || "";
+    const statutAffiche = cols[8] || "";
+    const dateEmission = cols[9] || "";
+    const dateExpiration = cols[10] || "";
+    const federation = cols[11] || "";
 
     const rowId = `${sig}-${annee}`.trim().toUpperCase();
 
     if(rowId === id){
       found = true;
 
-      const statusText = (statutAffiche || statut || "").toUpperCase();
+      const statusText = (statutAffiche || statut || "").trim().toUpperCase();
       const nextYear = nextYearFrom(dateExpiration);
 
       let color = "#c00000";
       let message = "Cette affiliation n’est pas active.";
-      let notice = "";
+      let notice = `Année concernée : ${annee}.`;
 
       if(statusText === "ACTIF"){
         color = "#008000";
@@ -88,7 +122,7 @@ fetch(sheetURL)
         notice = `Année concernée : ${annee}. Statut temporairement non actif.`;
       }
 
-      if(statusText === "EXPIRÉ"){
+      if(statusText === "EXPIRÉ" || statusText === "EXPIRE"){
         color = "#c00000";
         message = "Cette affiliation a expiré.";
         notice = `Renouvellement requis pour l’année ${nextYear}.`;
